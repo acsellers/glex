@@ -40,7 +40,6 @@ func (gc *GlfwContext) Start() error {
 	if err := glfw.Init(); err != nil {
 		return err
 	}
-	fmt.Println(gl.Init())
 
 	mode := glfw.Windowed
 	if c.Fullscreen {
@@ -62,6 +61,8 @@ func (gc *GlfwContext) Start() error {
 		glfw.Terminate()
 		return err
 	}
+
+	fmt.Println(gl.Init())
 
 	swapInterval := 0
 	if c.Vsync {
