@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/acsellers/glex"
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
@@ -23,23 +26,13 @@ func (ta *TriActivity) SetContext(c *glex.Context) {
 }
 
 func (ta *TriActivity) Draw() {
-	ta.BlankScreen()
 	ta.DrawTriangle()
-}
-
-func (ta *TriActivity) BlankScreen() {
-	gl.MatrixMode(gl.PROJECTION)
-	gl.LoadIdentity()
-	gl.Viewport(0, 0, ta.ctx.Width, ta.ctx.Height)
-	gl.Ortho(0, float64(ta.ctx.Width), float64(ta.ctx.Height), 0, -1.0, 1.0)
-	gl.ClearColor(1, 1, 1, 0)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.MatrixMode(gl.MODELVIEW)
 }
 
 func (ta *TriActivity) DrawTriangle() {
 	if !ta.gen {
 		ta.GenBuffer()
+		ta.GenShaders()
 	}
 
 	al := gl.AttribLocation(0)
@@ -50,7 +43,7 @@ func (ta *TriActivity) DrawTriangle() {
 		gl.FLOAT,
 		false,
 		0,
-		0,
+		&ta.buf,
 	)
 	al.DisableArray()
 }
@@ -69,6 +62,39 @@ func (ta *TriActivity) GenBuffer() {
 		gl.STATIC_DRAW,
 	)
 	ta.gen = true
+}
+
+func (ta *TriActivity) GenShaders() {
+	vShader := gl.CreateShader(gl.VERTEX_SHADER)
+	defer vShader.Delete()
+	vShader.Source(`#version 330
+layout(location = 0) in vec3 vertexPosition_modelspace
+void main() {
+  gl_Position.xyz = vertexPosition_modelspace;
+  gl_Position.w = 1.0;
+}`)
+	vShader.Compile()
+	fmt.Println(vShader.Get(gl.COMPILE_STATUS))
+	fmt.Println(vShader.GetInfoLog())
+
+	fShader := gl.CreateShader(gl.FRAGMENT_SHADER)
+	defer fShader.Delete()
+	fShader.Source(`#version 330
+out vec3 color;
+void main(){
+  color = vec3(1,0,0);
+}`)
+	fShader.Compile()
+	fmt.Println(fShader.Get(gl.COMPILE_STATUS))
+	fmt.Println(fShader.GetInfoLog())
+
+	prog := gl.CreateProgram()
+	prog.AttachShader(vShader)
+	prog.AttachShader(fShader)
+	prog.Link()
+	fmt.Println(prog.Get(gl.LINK_STATUS))
+	fmt.Println(prog.GetInfoLog())
+	prog.Use()
 }
 
 func init() {
@@ -95,7 +121,11 @@ func init() {
 }
 
 func main() {
-	Window.Start()
+	err := Window.Start()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	Window.Swap()
 	gl.GenVertexArray().Bind()
 
