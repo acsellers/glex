@@ -15,6 +15,8 @@ type Context struct {
 	Vsync         bool
 	WindowTitle   string
 	Active        bool
+	Shaders       [2]string
+	Program       gl.Program
 
 	Keyboard     func(key, state int)
 	MouseButton  func(button, state int)
@@ -24,15 +26,62 @@ type Context struct {
 	WindowResize func(width, height int)
 }
 
+func (c *Context) CompileShaders() {
+	vShader := gl.CreateShader(gl.VERTEX_SHADER)
+	defer vShader.Delete()
+	vShader.Source(c.Shaders[0])
+	vShader.Compile()
+	if vShader.Get(gl.COMPILE_STATUS) != 1 {
+		fmt.Println("Vertex Shader")
+		fmt.Println(vShader.GetInfoLog())
+	}
+
+	fShader := gl.CreateShader(gl.FRAGMENT_SHADER)
+	defer fShader.Delete()
+	fShader.Source(c.Shaders[1])
+	fShader.Compile()
+	if fShader.Get(gl.COMPILE_STATUS) != 1 {
+		fmt.Println("Fragment Shader")
+		fmt.Println(fShader.GetInfoLog())
+	}
+
+	prog := gl.CreateProgram()
+	prog.AttachShader(vShader)
+	prog.AttachShader(fShader)
+	prog.Link()
+	if prog.Get(gl.LINK_STATUS) != 1 {
+		fmt.Println("Program")
+		fmt.Println(prog.GetInfoLog())
+	}
+
+	c.Program = prog
+}
+
 type ContextImplementation interface {
 	Start() error
+	Activity() Activity
+	SetActivity(Activity)
 	Swap()
+	Active() bool
 	Refresh() error
 	Close()
+	Context() *Context
+}
+
+type Activity interface {
+	Generate()
+	Draw()
+	Camera()
+	SetContext(*Context)
 }
 
 type GlfwContext struct {
 	Ctx *Context
+	Act Activity
+}
+
+func (gc *GlfwContext) Active() bool {
+	return gc.Ctx.Active
 }
 
 func (gc *GlfwContext) Start() error {
@@ -109,15 +158,39 @@ func (gc *GlfwContext) Start() error {
 		glfw.SetWindowSizeCallback(c.WindowResize)
 	}
 
+	if c.Shaders != [2]string{"", ""} {
+		c.CompileShaders()
+	}
+
+	if gc.Act != nil {
+		gc.Act.SetContext(c)
+		gc.Act.Generate()
+	}
+
 	c.Active = true
 	return nil
 }
 
 func (c *GlfwContext) Swap() {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
+	c.Act.Draw()
+	c.Act.Camera()
+
 	glfw.SwapBuffers()
 }
 func (c *GlfwContext) Refresh() error {
 	return nil
+}
+
+func (c *GlfwContext) Activity() Activity {
+	return c.Act
+}
+
+func (c *GlfwContext) SetActivity(a Activity) {
+	c.Act = a
+	c.Act.SetContext(c.Ctx)
+	c.Act.Generate()
 }
 
 func (c *GlfwContext) Close() {
@@ -125,25 +198,6 @@ func (c *GlfwContext) Close() {
 	glfw.Terminate()
 }
 
-type Activity interface {
-	Draw()
-	SetContext(*Context)
-}
-
-type NullActivity struct {
-	Ctx *Context
-}
-
-func (na *NullActivity) SetContext(c *Context) {
-	na.Ctx = c
-}
-
-func (na *NullActivity) Draw() {
-	gl.MatrixMode(gl.PROJECTION)
-	gl.LoadIdentity()
-	gl.Viewport(0, 0, na.Ctx.Width, na.Ctx.Height)
-	gl.Ortho(0, float64(na.Ctx.Width), float64(na.Ctx.Height), 0, -1.0, 1.0)
-	gl.ClearColor(1, 1, 1, 0)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.MatrixMode(gl.MODELVIEW)
+func (c *GlfwContext) Context() *Context {
+	return c.Ctx
 }
