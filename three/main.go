@@ -71,7 +71,7 @@ func (ta *TriActivity) GenBuffer() {
 func (ta *TriActivity) GenShaders() {
 	vShader := gl.CreateShader(gl.VERTEX_SHADER)
 	defer vShader.Delete()
-	vShader.Source(`#version 140
+	vShader.Source(`#version 130
 #extension GL_ARB_explicit_attrib_location : enable
 layout(location = 0) in vec3 vertexPosition_modelspace;
 
@@ -86,7 +86,7 @@ void main() {
 
 	fShader := gl.CreateShader(gl.FRAGMENT_SHADER)
 	defer fShader.Delete()
-	fShader.Source(`#version 140
+	fShader.Source(`#version 130
 out vec3 color;
 
 void main() {
