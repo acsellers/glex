@@ -16,9 +16,10 @@ var (
 )
 
 type TriActivity struct {
-	ctx *glex.Context
-	buf gl.Buffer
-	gen bool
+	ctx  *glex.Context
+	buf  gl.Buffer
+	gen  bool
+	prog gl.Program
 }
 
 func (ta *TriActivity) SetContext(c *glex.Context) {
@@ -26,6 +27,8 @@ func (ta *TriActivity) SetContext(c *glex.Context) {
 }
 
 func (ta *TriActivity) Draw() {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	ta.prog.Use()
 	ta.DrawTriangle()
 }
 
@@ -43,8 +46,9 @@ func (ta *TriActivity) DrawTriangle() {
 		gl.FLOAT,
 		false,
 		0,
-		&ta.buf,
+		nil,
 	)
+	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 	al.DisableArray()
 }
 
@@ -67,24 +71,29 @@ func (ta *TriActivity) GenBuffer() {
 func (ta *TriActivity) GenShaders() {
 	vShader := gl.CreateShader(gl.VERTEX_SHADER)
 	defer vShader.Delete()
-	vShader.Source(`#version 330
-layout(location = 0) in vec3 vertexPosition_modelspace
+	vShader.Source(`#version 140
+#extension GL_ARB_explicit_attrib_location : enable
+layout(location = 0) in vec3 vertexPosition_modelspace;
+
 void main() {
   gl_Position.xyz = vertexPosition_modelspace;
   gl_Position.w = 1.0;
 }`)
 	vShader.Compile()
+	fmt.Println("Vertex Shader")
 	fmt.Println(vShader.Get(gl.COMPILE_STATUS))
 	fmt.Println(vShader.GetInfoLog())
 
 	fShader := gl.CreateShader(gl.FRAGMENT_SHADER)
 	defer fShader.Delete()
-	fShader.Source(`#version 330
+	fShader.Source(`#version 140
 out vec3 color;
-void main(){
+
+void main() {
   color = vec3(1,0,0);
 }`)
 	fShader.Compile()
+	fmt.Println("Fragment Shader")
 	fmt.Println(fShader.Get(gl.COMPILE_STATUS))
 	fmt.Println(fShader.GetInfoLog())
 
@@ -92,9 +101,11 @@ void main(){
 	prog.AttachShader(vShader)
 	prog.AttachShader(fShader)
 	prog.Link()
+	fmt.Println("Program")
 	fmt.Println(prog.Get(gl.LINK_STATUS))
 	fmt.Println(prog.GetInfoLog())
-	prog.Use()
+
+	ta.prog = prog
 }
 
 func init() {

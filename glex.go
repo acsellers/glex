@@ -46,6 +46,12 @@ func (gc *GlfwContext) Start() error {
 		mode = glfw.Fullscreen
 	}
 
+	glfw.OpenWindowHint(glfw.FsaaSamples, 4)
+	glfw.OpenWindowHint(glfw.OpenGLVersionMajor, 3)
+	glfw.OpenWindowHint(glfw.OpenGLVersionMinor, 0)
+	//glfw.OpenWindowHint(glfw.OpenGLVersionMinor, 3)
+	//glfw.OpenWindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+
 	err := glfw.OpenWindow(
 		c.Width,
 		c.Height,
@@ -62,7 +68,10 @@ func (gc *GlfwContext) Start() error {
 		return err
 	}
 
-	fmt.Println(gl.Init())
+	if e := gl.Init(); e != 0 {
+		return fmt.Errorf("GL Init returned error code: %v", e)
+	}
+	gl.ClearColor(0.0, 0.0, 0.4, 0.0)
 
 	swapInterval := 0
 	if c.Vsync {
