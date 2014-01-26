@@ -159,6 +159,7 @@ func (gc *GlfwContext) Start() error {
 	}
 
 	if c.Shaders != [2]string{"", ""} {
+		fmt.Println("compiling shaders")
 		c.CompileShaders()
 	}
 
@@ -172,7 +173,7 @@ func (gc *GlfwContext) Start() error {
 }
 
 func (c *GlfwContext) Swap() {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	c.Act.Draw()
 	c.Act.Camera()

@@ -35,7 +35,6 @@ var (
 type TriActivity struct {
 	ctx *glex.Context
 	buf gl.Buffer
-	gen bool
 	mvp *math3d.Matrix
 }
 
@@ -88,8 +87,6 @@ func (ta *TriActivity) Generate() {
 	model := math3d.Identity()
 
 	ta.mvp = proj.Multiply(view.Multiply(model))
-
-	ta.gen = true
 }
 
 func init() {
